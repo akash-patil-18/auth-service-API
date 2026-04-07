@@ -2,12 +2,9 @@ class JsonWebToken
   # Use secret from ENV (never hardcode)
   SECRET_KEY = ENV['JWT_SECRET_KEY']
 
-  # 🔐 Generate token
-  def self.encode(payload, exp = 24.hours.from_now)
-    # Add expiration time to payload
+  # Generate token
+  def self.encode(payload, exp = 15.minutes.from_now)
     payload[:exp] = exp.to_i
-
-    # Encode payload into JWT token
     JWT.encode(payload, SECRET_KEY)
   end
 

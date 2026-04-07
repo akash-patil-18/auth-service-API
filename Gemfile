@@ -55,3 +55,6 @@ gem 'rack-cors'            # handle cross-origin requests
 
 # Utilities
 gem 'dotenv-rails'         # manage env variables (dev only)
+
+# RBAC
+gem 'pundit'

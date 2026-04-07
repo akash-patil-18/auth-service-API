@@ -1,5 +1,9 @@
 class ApplicationController < ActionController::API
+  include Pundit
+  
   before_action :authenticate_request
+
+  rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
   attr_reader :current_user
 
@@ -18,5 +22,9 @@ class ApplicationController < ActionController::API
     else
       render json: { error: 'Unauthorized' }, status: :unauthorized
     end
+  end
+
+  def user_not_authorized
+    render json: { error: 'You are not authorized to perform this action' }, status: :forbidden
   end
 end

@@ -1,42 +1,41 @@
 class Api::V1::AuthController < ApplicationController
-  # Skip authentication for signup & login
-  skip_before_action :authenticate_request, only: [:signup, :login]
+  skip_before_action :authenticate_request, only: [:signup, :login, :refresh]
 
-  # Signup API
+  # Signup
   def signup
     user = User.new(user_params)
 
     if user.save
-      # Generate token after successful signup
-      token = JsonWebToken.encode(user_id: user.id)
-
-      render json: {
-        message: 'User created successfully',
-        token: token
-      }, status: :created
+      render_token_response(user)
     else
-      render json: {
-        errors: user.errors.full_messages
-      }, status: :unprocessable_entity
+      render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
-  # Login API
+  # Login
   def login
     user = User.find_by(email: params[:email])
 
-    # authenticate method comes from has_secure_password
     if user&.authenticate(params[:password])
-      token = JsonWebToken.encode(user_id: user.id)
+      render_token_response(user)
+    else
+      render json: { error: 'Invalid email or password' }, status: :unauthorized
+    end
+  end
+
+  # Refresh Token API
+  def refresh
+    user = User.find_by(refresh_token: params[:refresh_token])
+
+    if user
+      # Generate new access token
+      access_token = JsonWebToken.encode(user_id: user.id)
 
       render json: {
-        message: 'Login successful',
-        token: token
+        access_token: access_token
       }
     else
-      render json: {
-        error: 'Invalid email or password'
-      }, status: :unauthorized
+      render json: { error: 'Invalid refresh token' }, status: :unauthorized
     end
   end
 
@@ -44,5 +43,21 @@ class Api::V1::AuthController < ApplicationController
 
   def user_params
     params.permit(:email, :password, :role)
+  end
+
+  # Common method for token generation
+  def render_token_response(user)
+    access_token = JsonWebToken.encode(user_id: user.id)
+
+    # Generate refresh token
+    refresh_token = SecureRandom.hex(32)
+
+    # Save refresh token in DB
+    user.update(refresh_token: refresh_token)
+
+    render json: {
+      access_token: access_token,
+      refresh_token: refresh_token
+    }
   end
 end
